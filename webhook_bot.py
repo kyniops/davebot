@@ -1,11 +1,10 @@
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, CallbackQueryHandler
-from telegram.ext import AIORateLimiter
-from aiohttp import web
 import os
+from aiohttp import web
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
 
-TOKEN = os.getenv("BOT_TOKEN")  # On récupère le token depuis Render (Environment Variable)
-WEBHOOK_URL = os.getenv("WEBHOOK_URL")  # L'URL publique Render
+TOKEN = os.getenv("BOT_TOKEN")           # Ton token Telegram
+WEBHOOK_URL = os.getenv("WEBHOOK_URL")   # URL publique de Render
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
@@ -17,20 +16,21 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer("Bouton cliqué !")
 
+# Créer l'application Telegram
+app = ApplicationBuilder().token(TOKEN).build()
+app.add_handler(CommandHandler("start", start))
+app.add_handler(CallbackQueryHandler(button))
+
+# Création serveur aiohttp pour webhook
 async def handle(request):
     data = await request.json()
     await app.update_queue.put(data)
     return web.Response()
 
-app = ApplicationBuilder().token(TOKEN).rate_limiter(AIORateLimiter()).build()
-
-app.add_handler(CommandHandler("start", start))
-app.add_handler(CallbackQueryHandler(button))
-
-# Serveur aiohttp
 web_app = web.Application()
 web_app.router.add_post("/", handle)
 
+# Webhook setup
 async def on_startup(app_web):
     await app.bot.set_webhook(url=WEBHOOK_URL)
 

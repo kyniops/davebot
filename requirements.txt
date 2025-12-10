@@ -1,2 +1,2 @@
-python-telegram-bot[webhooks]==20.7
-aiohttp
+python-telegram-bot[rate-limiter]==20.7
+
